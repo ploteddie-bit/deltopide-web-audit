@@ -1,0 +1,14 @@
+# Rust build artifacts
+audit-engine-rs/target/
+extension-wasm/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Node
+node_modules/
