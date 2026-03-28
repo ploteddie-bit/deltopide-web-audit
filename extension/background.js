@@ -35,15 +35,42 @@ function checkRateLimit() {
   return ++_auditCount <= 30;
 }
 
-// License check via WASM
+// License check via Cloudflare Worker API
+const LICENSE_API = "https://deltopide-audit-license.explodev.workers.dev";
+
 async function checkLicense() {
-  const store = await chrome.storage.local.get(["deltopide_license"]);
+  const store = await chrome.storage.local.get(["deltopide_license", "deltopide_license_cache"]);
   const key = store.deltopide_license || "";
   if (!key) return { valid: false, reason: "no_key" };
-  if (new Date() > new Date("2027-03-27")) return { valid: false, reason: "expired" };
-  if (!wasmReady) return { valid: false, reason: "wasm_loading" };
-  const valid = validate_license(key);
-  return { valid, reason: valid ? "ok" : "invalid_key" };
+
+  // Cache local : revalider toutes les 24h max
+  const cache = store.deltopide_license_cache;
+  if (cache && cache.key === key && cache.valid && (Date.now() - cache.ts) < 86400000) {
+    return { valid: true, reason: "ok" };
+  }
+
+  // Validation serveur
+  try {
+    const r = await fetch(`${LICENSE_API}/validate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key })
+    });
+    const data = await r.json();
+    if (data.valid) {
+      await chrome.storage.local.set({
+        deltopide_license_cache: { key, valid: true, ts: Date.now(), name: data.name }
+      });
+      return { valid: true, reason: "ok" };
+    }
+    return { valid: false, reason: data.reason || "invalid_key" };
+  } catch (e) {
+    // Offline : fallback sur le cache meme expire
+    if (cache && cache.key === key && cache.valid) {
+      return { valid: true, reason: "ok_offline" };
+    }
+    return { valid: false, reason: "network_error" };
+  }
 }
 
 // Fetch helpers
