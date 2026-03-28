@@ -186,6 +186,7 @@ function showResult() {
 
 async function openSidePanel(tab) {
   chrome.runtime.sendMessage({ action: "openSidePanel", tabId: tab.id });
+  window.close();
 }
 
 init();
