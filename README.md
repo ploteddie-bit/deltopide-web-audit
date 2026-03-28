@@ -8,7 +8,7 @@ Disponible en **CLI Python** et **Extension Chrome**.
 [![Version](https://img.shields.io/badge/version-1.2.0-00d4aa)](https://github.com/ploteddie-bit/web-audit-tool)
 [![Rust](https://img.shields.io/badge/engine-Rust%2FWASM-orange)](https://github.com/ploteddie-bit/web-audit-tool/tree/master/audit-engine-rs)
 [![Chrome](https://img.shields.io/badge/Chrome-Extension%20MV3-blue)](https://github.com/ploteddie-bit/web-audit-tool/tree/master/extension)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![License](https://img.shields.io/badge/license-Proprietary-red)](LICENSE)
 
 ## Fonctionnalites
 
