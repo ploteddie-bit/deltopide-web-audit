@@ -8,6 +8,24 @@
   if (window.__deltopideAuditInjected) return;
   window.__deltopideAuditInjected = true;
 
+  // --- CWV via PerformanceObserver (buffered) ---
+  // LCP et CLS ne sont PAS disponibles via getEntriesByType()
+  let __lcp = null;
+  let __cls = 0;
+  try {
+    new PerformanceObserver((list) => {
+      const entries = list.getEntries();
+      if (entries.length > 0) __lcp = Math.round(entries[entries.length - 1].startTime);
+    }).observe({ type: "largest-contentful-paint", buffered: true });
+  } catch(e) { /* LCP non supporté */ }
+  try {
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        if (!entry.hadRecentInput) __cls += entry.value;
+      }
+    }).observe({ type: "layout-shift", buffered: true });
+  } catch(e) { /* CLS non supporté */ }
+
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.action === "analyzeDOM") {
       try {
@@ -167,21 +185,14 @@
     });
 
     // --- CORE WEB VITALS ---
+    // FCP via getEntriesByType (supporté), LCP/CLS via PerformanceObserver (initialisé au chargement)
     const cwv = {};
     try {
       const paintEntries = performance.getEntriesByType("paint");
       const fcp = paintEntries.find(e => e.name === "first-contentful-paint");
       if (fcp) cwv.fcp = Math.round(fcp.startTime);
-
-      const lcpEntries = performance.getEntriesByType("largest-contentful-paint");
-      if (lcpEntries.length > 0) cwv.lcp = Math.round(lcpEntries[lcpEntries.length - 1].startTime);
-
-      // CLS from layout-shift entries
-      const lsEntries = performance.getEntriesByType("layout-shift");
-      if (lsEntries.length > 0) {
-        cwv.cls = lsEntries.reduce((sum, e) => sum + (e.hadRecentInput ? 0 : e.value), 0);
-        cwv.cls = Math.round(cwv.cls * 1000) / 1000;
-      }
+      if (__lcp !== null) cwv.lcp = __lcp;
+      if (__cls > 0) cwv.cls = Math.round(__cls * 1000) / 1000;
     } catch(e) { /* CWV unavailable */ }
 
     // --- FAVICON ---
