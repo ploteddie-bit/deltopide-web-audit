@@ -39,8 +39,8 @@
       og[m.getAttribute("property")] = m.content;
     });
     const twitter = {};
-    doc.querySelectorAll('meta[name^="twitter:"]').forEach(m => {
-      twitter[m.getAttribute("name")] = m.content;
+    doc.querySelectorAll('meta[name^="twitter:"], meta[property^="twitter:"]').forEach(m => {
+      twitter[m.getAttribute("name") || m.getAttribute("property")] = m.content;
     });
 
     // --- HEADINGS ---
@@ -250,7 +250,7 @@
 
   function extractSchema(item) {
     return {
-      type: item["@type"] || "unknown",
+      type: Array.isArray(item["@type"]) ? item["@type"].join(", ") : (item["@type"] || "unknown"),
       name: item.name || item.headline || "",
       url: item.url || "",
       keys: Object.keys(item).slice(0, 15)

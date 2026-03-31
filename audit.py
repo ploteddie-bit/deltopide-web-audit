@@ -355,6 +355,14 @@ def audit_open_graph(report, soup):
         print_status("❌", f"OG/Twitter: {len(missing)} manquantes")
     return check
 
+
+def _append_types(lst, value):
+    """Ajoute @type au listing, supporte string ou liste."""
+    if isinstance(value, list):
+        lst.extend(str(t) for t in value)
+    else:
+        lst.append(str(value))
+
 def audit_schema(report, soup, html_content):
     check = report.add(Check("Schema.org (JSON-LD)", "TECH"))
     check_geo = report.add(Check("Schema.org pour GEO", "GEO"))
@@ -366,14 +374,14 @@ def audit_schema(report, soup, html_content):
             if isinstance(data, list):
                 for item in data:
                     if '@type' in item:
-                        schemas_found.append(item['@type'])
+                        _append_types(schemas_found, item['@type'])
             elif isinstance(data, dict):
                 if '@type' in data:
-                    schemas_found.append(data['@type'])
+                    _append_types(schemas_found, data['@type'])
                 if '@graph' in data:
                     for item in data['@graph']:
                         if '@type' in item:
-                            schemas_found.append(item['@type'])
+                            _append_types(schemas_found, item['@type'])
         except (json.JSONDecodeError, TypeError):
             pass
     report.raw_data["schema_types"] = schemas_found
