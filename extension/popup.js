@@ -46,12 +46,7 @@ function showLicenseScreen(reason) {
 
 // Check if we have a cached result for this tab
 async function init() {
-  // License gate
-  const license = await chrome.runtime.sendMessage({ action: "checkLicense" });
-  if (!license.valid) {
-    showLicenseScreen(license.reason);
-    return;
-  }
+  // License gate — FREE mode (désactivé pour développement)
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.url || tab.url.startsWith("chrome://")) {
@@ -182,11 +177,36 @@ function showResult() {
   document.getElementById("btn-export")?.addEventListener("click", () => {
     exportJSON(currentResult);
   });
+
+  // GSC Submit button
+  document.getElementById("btn-gsc-submit")?.addEventListener("click", async () => {
+    const statusEl = document.getElementById("gsc-status");
+    const btn = document.getElementById("btn-gsc-submit");
+    btn.disabled = true;
+    btn.textContent = "Soumission en cours...";
+    statusEl.innerHTML = '<div class="gsc-loading">Connexion a Google...</div>';
+
+    const siteUrl = new URL(currentResult.url).origin + "/";
+    const result = await chrome.runtime.sendMessage({
+      action: "gscSubmit",
+      siteUrl: siteUrl,
+      sitemapUrl: siteUrl + "sitemap.xml"
+    });
+
+    if (result.ok) {
+      statusEl.innerHTML = renderGSCStatus(result.steps);
+      btn.textContent = "Soumis";
+      btn.classList.add("btn-gsc-done");
+    } else {
+      statusEl.innerHTML = `<div class="gsc-error">${escapeHtml(result.error)}</div>`;
+      btn.textContent = "Reessayer";
+      btn.disabled = false;
+    }
+  });
 }
 
 async function openSidePanel(tab) {
   chrome.runtime.sendMessage({ action: "openSidePanel", tabId: tab.id });
-  window.close();
 }
 
 init();
